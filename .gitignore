@@ -1,0 +1,5 @@
+# 個人金鑰與網址
+config.js
+# 匯出的資料
+*.xlsx
+.DS_Store
