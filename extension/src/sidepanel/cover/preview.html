@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>Listio 首圖模板預覽</title>
+  <link rel="stylesheet" href="../../styles/tokens.css">
+  <link rel="stylesheet" href="../../styles/base.css">
+  <style>
+    body { padding: 24px 32px; background: var(--c-bg); }
+    .head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; }
+    .head h1 { font-size: 20px; }
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; max-width: 840px; margin: 0 auto; }
+    .item { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 16px; padding: 14px; box-shadow: var(--shadow-sm); }
+    .item canvas { width: 100%; aspect-ratio: 1; border-radius: 10px; }
+    .caption { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 13px; }
+    .caption strong { font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="head" style="max-width:840px;margin:0 auto 18px;">
+    <h1>Listio 商品首圖模板（4 款 × 品牌色票自動套用）</h1>
+    <span class="muted small" id="brandLabel"></span>
+  </div>
+  <div class="grid" id="grid"></div>
+  <script type="module" src="preview.js"></script>
+</body>
+</html>

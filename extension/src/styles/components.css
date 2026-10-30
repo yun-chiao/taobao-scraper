@@ -1,0 +1,326 @@
+/* 極簡元件庫：安靜、清晰、像紙本工具而非 AI 儀表板 */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-md);
+  font-weight: 500;
+  border: 1px solid transparent;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+  white-space: nowrap;
+  user-select: none;
+}
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.btn svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+.btn-primary {
+  background: var(--c-primary);
+  color: var(--c-on-primary);
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--c-primary-hover);
+}
+.btn-secondary {
+  background: var(--c-surface);
+  border-color: var(--c-border-strong);
+  color: var(--c-text);
+}
+.btn-secondary:hover:not(:disabled) {
+  background: var(--c-surface-2);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--c-text-2);
+  padding: 0 8px;
+}
+.btn-ghost:hover:not(:disabled) {
+  background: var(--c-surface-2);
+  color: var(--c-text);
+}
+.btn-sm {
+  height: 28px;
+  padding: 0 10px;
+  font-size: var(--fs-xs);
+  border-radius: var(--r-sm);
+}
+.btn-lg {
+  height: 42px;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+}
+.btn-block {
+  width: 100%;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-sm);
+  color: var(--c-text-2);
+}
+.icon-btn:hover {
+  background: var(--c-surface-2);
+  color: var(--c-text);
+}
+.icon-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.link-btn {
+  font-size: var(--fs-xs);
+  color: var(--c-text-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.link-btn:hover {
+  color: var(--c-text);
+}
+
+/* 表單 */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.field-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--fs-xs);
+  color: var(--c-text-2);
+}
+.field-counter {
+  font-variant-numeric: tabular-nums;
+  color: var(--c-text-3);
+}
+.field-counter.is-over {
+  color: var(--c-danger);
+  font-weight: 600;
+}
+.input,
+.textarea,
+.select {
+  width: 100%;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  padding: 8px 10px;
+  font-size: var(--fs-md);
+  line-height: 1.5;
+  transition: border-color var(--dur) var(--ease);
+}
+.input:focus,
+.textarea:focus,
+.select:focus {
+  outline: none;
+  border-color: var(--c-text);
+}
+.textarea {
+  resize: vertical;
+  min-height: 160px;
+  line-height: 1.65;
+  font-size: var(--fs-md);
+}
+/* 內文隨字數長高，最多到視窗 60%，之後才出現內部捲軸 */
+.textarea.autogrow {
+  field-sizing: content;
+  min-height: 120px;
+  max-height: 60vh;
+  resize: none;
+}
+
+/* 文字切換列 (取代花俏的膠囊卡片) */
+.tabs-inline {
+  display: inline-flex;
+  background: var(--c-surface-2);
+  padding: 2px;
+  border-radius: var(--r-sm);
+  gap: 1px;
+}
+.tabs-inline button {
+  height: 24px;
+  padding: 0 9px;
+  border-radius: 4px;
+  font-size: var(--fs-xs);
+  color: var(--c-text-2);
+}
+.tabs-inline button.is-active {
+  background: var(--c-surface);
+  color: var(--c-text);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+
+/* 勾選開關列 */
+.toggle-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  font-size: var(--fs-xs);
+  color: var(--c-text-2);
+}
+.toggle-pill.is-active {
+  border-color: var(--c-text);
+  background: var(--c-text);
+  color: #fff;
+}
+.toggle-pill svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* 選單與 Toast */
+.menu {
+  position: fixed;
+  z-index: 60;
+  min-width: 170px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-md);
+  padding: 4px;
+}
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-sm);
+  text-align: left;
+}
+.menu-item:hover {
+  background: var(--c-surface-2);
+}
+.menu-item.is-active {
+  font-weight: 600;
+}
+.menu-item svg {
+  width: 14px;
+  height: 14px;
+}
+.menu-sep {
+  height: 1px;
+  background: var(--c-border);
+  margin: 4px 0;
+}
+
+.toasts {
+  position: fixed;
+  left: 50%;
+  bottom: 64px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 100;
+  pointer-events: none;
+}
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: var(--r-md);
+  background: #18181b;
+  color: #fff;
+  font-size: var(--fs-xs);
+  box-shadow: var(--shadow-md);
+  max-width: min(92vw, 360px);
+  line-height: 1.45;
+}
+.toast svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+.toast.is-interactive {
+  pointer-events: auto;
+  cursor: pointer;
+}
+.toast-msg {
+  flex: 1;
+  min-width: 0;
+}
+.toast-action {
+  flex: none;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.toast-action:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+/* 等待中的佔位（靜態色塊＋輕微呼吸，不用掃光漸層） */
+.skeleton-line,
+.skeleton-box {
+  background: var(--c-surface-2);
+  border-radius: 6px;
+  animation: breathe 1.6s ease-in-out infinite;
+}
+.skeleton-line {
+  height: 12px;
+  width: 60%;
+}
+.skeleton-line + .skeleton-line {
+  margin-top: 8px;
+}
+.skeleton-box {
+  width: 100%;
+  min-height: 36px;
+}
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.input.is-invalid,
+.textarea.is-invalid {
+  border-color: var(--c-danger);
+}
+
+.spinner {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 1.75px solid currentColor;
+  border-right-color: transparent;
+  animation: spin 0.75s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

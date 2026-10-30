@@ -1,0 +1,336 @@
+// Listio — 介面合約的程式版。所有 context（service worker / side panel / options / content / tests）共用。
+// 規則：此檔案只能有純資料與純函式，不得引用 chrome.*。
+
+/** @typedef {'taobao'|'tmall'|'1688'} Site */
+/** @typedef {'extracting'|'generating'|'ready'|'error'} JobStatus */
+/** @typedef {'UNSUPPORTED_PAGE'|'EXTRACT_EMPTY'|'NO_API_KEY'|'UNAUTHENTICATED'|'QUOTA_EXCEEDED'|'MODEL_ERROR'|'NETWORK'|'IMAGE_FETCH'|'INTERNAL'} ErrCode */
+
+/**
+ * @typedef {Object} ProductImage
+ * @property {string} url      原始網址
+ * @property {string} hiRes    高清網址
+ */
+
+/**
+ * @typedef {Object} Product
+ * @property {Site} site
+ * @property {string} url
+ * @property {string|null} itemId
+ * @property {string} title
+ * @property {ProductImage[]} images
+ * @property {{amount:number,currency:'CNY'}|null} price
+ * @property {Record<string,string>} attrs
+ * @property {{name:string,options:string[]}[]} skus
+ * @property {string|null} shopName
+ * @property {{adapter:string,strategy:'state'|'jsonld'|'dom'|'fallback',warnings:string[]}} extractor
+ */
+
+/**
+ * @typedef {Object} PriceDraft
+ * @property {number|null} costCny
+ * @property {number} rate
+ * @property {number} shippingTwd
+ * @property {number} feeRate
+ * @property {number} marginRate
+ * @property {'9'|'0'|'none'} rounding
+ * @property {number|null} suggested
+ * @property {number|null} final
+ */
+
+/**
+ * @typedef {Object} Draft
+ * @property {string} title
+ * @property {string} description
+ * @property {string[]} tags
+ * @property {number[]} selectedImages
+ * @property {number} coverImageIndex
+ * @property {string} coverTemplateId
+ * @property {string|null} coverDataUrl
+ * @property {PriceDraft} price
+ * @property {number} daysToShip
+ * @property {string} categoryId
+ * @property {number} stock
+ * @property {number} weightKg
+ * @property {{title?: boolean, description?: boolean}} [editedFields]  使用者手動改過的欄位；重寫／切換材質時用來保護這些字
+ */
+
+/**
+ * @typedef {Object} Generated
+ * @property {string} title
+ * @property {string} slogan
+ * @property {string} body
+ * @property {string} signature
+ * @property {{label:string,value:string}[]} details
+ * @property {string[]} tags
+ * @property {string} style
+ * @property {string[]} materialHints
+ * @property {string[]} warnings
+ */
+
+/**
+ * @typedef {Object} ComplianceIssue
+ * @property {'info'|'warn'|'block'} level
+ * @property {'title'|'description'|'price'|'images'|'general'} field
+ * @property {string} message
+ * @property {string} [fix]
+ */
+
+/**
+ * @typedef {Object} Job
+ * @property {string} id
+ * @property {number} createdAt
+ * @property {number} updatedAt
+ * @property {JobStatus} status
+ * @property {{step:'extract'|'generate'|'compose',label:string}} progress
+ * @property {{code:ErrCode,message:string,hint?:string}|null} error
+ * @property {number|null} tabId
+ * @property {string} brandId
+ * @property {Product|null} product
+ * @property {Generated|null} generated
+ * @property {Draft|null} draft
+ * @property {ComplianceIssue[]} compliance
+ * @property {number|null} [exportedAt]      最近一次交付（帶入蝦皮／匯出 Excel／複製圖文）的時間
+ * @property {'shopee'|'xlsx'|'clipboard'|null} [exportedVia]
+ */
+
+/**
+ * @typedef {Object} Persona
+ * @property {'warm'|'minimal'|'playful'|'luxury'|'custom'} presetId
+ * @property {string} tone
+ * @property {string[]} styleTags
+ * @property {string} signatureTitle
+ * @property {string} signatureHint
+ * @property {boolean} emoji
+ * @property {string} customPrompt
+ */
+
+/**
+ * @typedef {Object} Brand
+ * @property {string} id
+ * @property {string} name
+ * @property {string} badgeText
+ * @property {string} tagline
+ * @property {Persona} persona
+ * @property {string} shippingNote
+ * @property {{bg:string,fg:string,accent:string}} palette
+ * @property {string} coverTemplateId
+ * @property {{rate:number,shippingTwd:number,feeRate:number,marginRate:number,rounding:'9'|'0'|'none'}} pricing
+ * @property {{silver925:boolean,gold18k:boolean,steel316:boolean,natural:boolean}} materialClaims
+ * @property {{daysToShip:number,stock:number,weightKg:number,categoryId:string}} defaults
+ */
+
+/**
+ * @typedef {Object} Settings
+ * @property {'byok'|'cloud'} mode            預設 'cloud'：免費方案不需金鑰；'byok' 為進階選項（自備 Gemini 金鑰，不計件數）
+ * @property {string} geminiApiKey
+ * @property {string} model
+ * @property {string} backendUrl
+ * @property {string} authToken               cloud：由後端 /v1/auth/anonymous 自動核發，使用者不需登入
+ * @property {string} deviceId                cloud：本機產生的裝置識別碼，用來換取匿名 token
+ * @property {string} gasUrl
+ * @property {string} activeBrandId
+ * @property {boolean} telemetry
+ * @property {boolean} onboarded
+ */
+
+/**
+ * @typedef {Object} Usage
+ * @property {'free'|'pro'|'studio'} plan
+ * @property {number} used        free：累計（終身）已產生件數；pro/studio：本月已產生件數
+ * @property {number} limit
+ * @property {'lifetime'|'monthly'} period
+ * @property {number|null} periodEnd   monthly 才有值（下個月 1 日 00:00 UTC 的毫秒時間戳）
+ */
+
+export const SITES = /** @type {const} */ (['taobao', 'tmall', '1688']);
+
+export const SITE_LABEL = { taobao: '淘寶', tmall: '天貓', 1688: '1688' };
+
+export const JOB_STATUS = /** @type {const} */ ({
+  EXTRACTING: 'extracting',
+  GENERATING: 'generating',
+  READY: 'ready',
+  ERROR: 'error',
+});
+
+export const PROGRESS_STEPS = [
+  { step: 'extract', label: '擷取商品資料' },
+  { step: 'generate', label: 'AI 撰寫文案' },
+  { step: 'compose', label: '組版與檢查' },
+];
+
+export const MSG = /** @type {const} */ ({
+  PAGE_PROBE: 'page/probe',
+  PAGE_CHANGED: 'page/changed',
+  JOB_START: 'job/start',
+  JOB_GET: 'job/get',
+  JOB_LIST: 'job/list',
+  JOB_UPDATE: 'job/update',
+  JOB_REGENERATE: 'job/regenerate',
+  JOB_DELETE: 'job/delete',
+  JOB_MARK_EXPORTED: 'job/markExported',
+  JOB_CHANGED: 'job/changed',
+  SETTINGS_GET: 'settings/get',
+  SETTINGS_SET: 'settings/set',
+  SETTINGS_TEST_KEY: 'settings/testKey',
+  SETTINGS_CHANGED: 'settings/changed',
+  BRAND_LIST: 'brand/list',
+  BRAND_SAVE: 'brand/save',
+  BRAND_DELETE: 'brand/delete',
+  USAGE_GET: 'usage/get',
+  USAGE_CHANGED: 'usage/changed',
+  EXPORT_SHOPEE_AUTOFILL: 'export/shopeeAutofill',
+  EXPORT_SHEET: 'export/sheet',
+  IMAGE_FETCH: 'image/fetch',
+  TELEMETRY: 'telemetry/event',
+});
+
+export const UI_PORT_NAME = 'listio-ui';
+
+/** 免費方案為「終身 10 件」，付費方案為每月額度。 */
+export const PLAN_LIMITS = { free: 10, pro: 150, studio: 600 };
+export const PLAN_PERIOD = /** @type {const} */ ({ free: 'lifetime', pro: 'monthly', studio: 'monthly' });
+export const PLAN_LABEL = { free: '免費', pro: 'Pro', studio: 'Studio' };
+
+/** @param {Partial<Usage>} [init] @returns {Usage} */
+export function newUsage(init = {}) {
+  const plan = init.plan || 'free';
+  const period = PLAN_PERIOD[plan] || 'monthly';
+  return {
+    plan,
+    used: init.used ?? 0,
+    limit: init.limit ?? PLAN_LIMITS[plan] ?? PLAN_LIMITS.free,
+    period,
+    periodEnd: period === 'lifetime' ? null : (init.periodEnd ?? null),
+  };
+}
+
+/** 剩餘可產生件數（不會小於 0）。 @param {Usage} usage */
+export const quotaRemaining = (usage) => Math.max(0, (usage?.limit ?? 0) - (usage?.used ?? 0));
+
+export const SHOPEE_TITLE_MAX = 60;
+export const SHOPEE_MAX_IMAGES = 9;
+export const PREORDER_THRESHOLD_DAYS = 2; // 出貨天數 > 2 即為預購
+
+export const EXPORT_VIA_LABEL = { shopee: '已帶入蝦皮', xlsx: '已匯出 Excel', clipboard: '已複製圖文' };
+
+/**
+ * 商品頁的穩定識別：同一件商品不同參數的網址都會得到同一把 key，用來避免重複產生。
+ * @param {string} url
+ * @returns {string}
+ */
+export function productKeyFromUrl(url) {
+  const s = String(url || '');
+  if (!s) return '';
+  let m = s.match(/(?:item\.taobao\.com|detail\.tmall(?:\.hk)?\.com|world\.taobao\.com)\/.*?[?&]id=(\d+)/i);
+  if (m) return `${/tmall/i.test(s) ? 'tmall' : 'taobao'}:${m[1]}`;
+  m = s.match(/detail\.1688\.com\/offer\/(\d+)\.html/i);
+  if (m) return `1688:${m[1]}`;
+  m = s.match(/[?&]id=(\d+)/);
+  if (m) return `id:${m[1]}`;
+  return s.replace(/[?#].*$/, '').replace(/\/+$/, '').toLowerCase();
+}
+
+/**
+ * 找出同一件商品最近的一筆紀錄（優先回傳已完成的）。
+ * @param {Job[]} jobs 新到舊
+ * @param {string} url
+ * @returns {Job|null}
+ */
+export function findJobForUrl(jobs, url) {
+  const key = productKeyFromUrl(url);
+  if (!key) return null;
+  const same = (jobs || []).filter((j) => j.product?.url && productKeyFromUrl(j.product.url) === key);
+  return same.find((j) => j.status === JOB_STATUS.READY) || same[0] || null;
+}
+
+export const DEFAULT_MODEL = 'gemini-3-flash-preview';
+export const FALLBACK_MODELS = ['gemini-2.5-flash'];
+
+/** 統一的成功／失敗回應 */
+export const ok = (data) => ({ ok: true, data });
+/** @param {ErrCode} code */
+export const fail = (code, message, hint) => ({ ok: false, error: { code, message, ...(hint ? { hint } : {}) } });
+
+export class ListioError extends Error {
+  /** @param {ErrCode} code */
+  constructor(code, message, hint) {
+    super(message);
+    this.name = 'ListioError';
+    this.code = code;
+    this.hint = hint;
+  }
+}
+
+export const ERROR_COPY = {
+  UNSUPPORTED_PAGE: { message: '這不是支援的商品頁', hint: '請開啟淘寶、天貓或 1688 的單一商品頁面再試一次。' },
+  EXTRACT_EMPTY: { message: '抓不到商品圖片', hint: '頁面可能改版了。你可以回報這個頁面，或手動貼上圖片網址。' },
+  NO_API_KEY: { message: '尚未填入 Gemini API Key', hint: '到設定 → 方案與金鑰貼上金鑰，或切回 Listio 雲端（免費 10 件）。' },
+  UNAUTHENTICATED: { message: '無法連上 Listio 雲端', hint: '檢查網路後重試；或到設定改用自備 Gemini 金鑰。' },
+  QUOTA_EXCEEDED: { message: '免費 10 件已用完', hint: '升級 Pro 每月 150 件；或到設定改用自備 Gemini 金鑰，不限件數。' },
+  MODEL_ERROR: { message: 'AI 暫時沒有回應', hint: '稍後再試，或換一個模型。' },
+  NETWORK: { message: '網路連線失敗', hint: '檢查網路後重試。' },
+  IMAGE_FETCH: { message: '圖片下載失敗', hint: '圖片來源可能有防盜鏈，已改用純文字生成。' },
+  INTERNAL: { message: '發生未預期的錯誤', hint: '請重試；若持續發生請回報。' },
+};
+
+export const uid = (prefix = 'job') => `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+
+/** @returns {PriceDraft} */
+export function newPriceDraft(pricing, costCny = null) {
+  return {
+    costCny,
+    rate: pricing.rate,
+    shippingTwd: pricing.shippingTwd,
+    feeRate: pricing.feeRate,
+    marginRate: pricing.marginRate,
+    rounding: pricing.rounding,
+    suggested: null,
+    final: null,
+  };
+}
+
+/**
+ * @param {Partial<Job>} init
+ * @returns {Job}
+ */
+export function newJob(init = {}) {
+  const now = Date.now();
+  return {
+    id: uid('job'),
+    createdAt: now,
+    updatedAt: now,
+    status: JOB_STATUS.EXTRACTING,
+    progress: { step: 'extract', label: PROGRESS_STEPS[0].label },
+    error: null,
+    tabId: null,
+    brandId: '',
+    product: null,
+    generated: null,
+    draft: null,
+    compliance: [],
+    exportedAt: null,
+    exportedVia: null,
+    ...init,
+  };
+}
+
+/** 給模型的 JSON schema（Gemini responseSchema 格式）。 */
+export const GENERATED_SCHEMA = {
+  type: 'object',
+  properties: {
+    title: { type: 'string', description: '≤60 字，關鍵字前置，含 1 個風格標籤，不含年份與「新款」' },
+    slogan: { type: 'string', description: '一句詩意 slogan，≤30 字' },
+    body: { type: 'string', description: '2–3 段描述與穿搭／使用情境，繁體中文（台灣用語）' },
+    signature: { type: 'string', description: '品牌招牌段落內容（第一人稱、口語、像朋友推薦）' },
+    details: {
+      type: 'array',
+      items: { type: 'object', properties: { label: { type: 'string' }, value: { type: 'string' } }, required: ['label', 'value'] },
+    },
+    tags: { type: 'array', items: { type: 'string' }, description: '5–8 個蝦皮搜尋關鍵字' },
+    style: { type: 'string', description: '從 styleTags 選一個' },
+    materialHints: { type: 'array', items: { type: 'string' }, description: '從圖片或標題觀察到的材質線索，不是斷言' },
+    warnings: { type: 'array', items: { type: 'string' } },
+  },
+  required: ['title', 'slogan', 'body', 'signature', 'details', 'tags', 'style', 'materialHints', 'warnings'],
+};

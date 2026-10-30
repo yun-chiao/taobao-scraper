@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Listio 實機操作預覽</title>
+  <link rel="stylesheet" href="extension/src/styles/tokens.css?v=13">
+  <link rel="stylesheet" href="extension/src/styles/base.css?v=13">
+  <link rel="stylesheet" href="extension/src/styles/components.css?v=13">
+  <style>
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      background: #eceae4;
+    }
+    .browser-shell {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    /* 模擬瀏覽器分頁列 */
+    .chrome-bar {
+      height: 44px;
+      flex: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      background: #e6e4dd;
+      border-bottom: 1px solid #d4d1c8;
+      gap: 12px;
+    }
+    .sim-tabs {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      overflow-x: auto;
+    }
+    .sim-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      height: 30px;
+      padding: 0 12px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      color: #575653;
+      background: transparent;
+      white-space: nowrap;
+      border: 1px solid transparent;
+    }
+    .sim-tab:hover {
+      background: rgba(255, 255, 255, 0.55);
+    }
+    .sim-tab.is-active {
+      background: #ffffff;
+      color: #18181b;
+      font-weight: 600;
+      border-color: #d4d1c8;
+    }
+    .sim-site-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #b85d3b;
+    }
+    .sim-site-dot.is-shopee {
+      background: #ee4d2d;
+    }
+    .chrome-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex: none;
+      font-size: 12px;
+    }
+    .chrome-actions a,
+    .chrome-actions button {
+      color: #575653;
+      font-size: 12px;
+    }
+    .chrome-actions a:hover,
+    .chrome-actions button:hover {
+      color: #18181b;
+      text-decoration: underline;
+    }
+    .chrome-actions button.is-active {
+      color: #18181b;
+      font-weight: 600;
+      text-decoration: underline;
+    }
+
+    /* 主分割視區 */
+    .workspace {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+    }
+    .webpage-pane {
+      flex: 1;
+      overflow-y: auto;
+      background: #f9f8f6;
+      position: relative;
+    }
+    .webpage-pane > iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+    }
+    .sidepanel-dock {
+      width: 384px;
+      flex: none;
+      background: #f7f6f3;
+      border-left: 1px solid #d4d1c8;
+      display: flex;
+      flex-direction: column;
+    }
+    .sidepanel-dock iframe {
+      width: 100%;
+      flex: 1;
+      border: 0;
+    }
+    @media (max-width: 860px) {
+      .webpage-pane { display: none; }
+      .sidepanel-dock { width: 100%; border-left: 0; }
+    }
+
+    /* 擬真網址列與來源商品頁 */
+    .mock-urlbar {
+      max-width: 880px;
+      margin: 18px auto 0;
+      padding: 0 28px;
+    }
+    .url-pill {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: #efefeb;
+      border: 1px solid #e2dfd7;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      color: #6e6c67;
+    }
+    .mock-item {
+      max-width: 880px;
+      margin: 16px auto 48px;
+      padding: 0 28px;
+    }
+    .mock-card {
+      background: #ffffff;
+      border: 1px solid #e6e4de;
+      border-radius: 10px;
+      padding: 28px;
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+      gap: 32px;
+    }
+    @media (max-width: 1120px) {
+      .mock-card { grid-template-columns: 1fr; }
+    }
+    .gallery-main {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #eceae4;
+      background: #f4f2ec;
+    }
+    .gallery-main canvas {
+      width: 100%;
+      height: 100%;
+    }
+    .gallery-thumbs {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .gallery-thumbs canvas {
+      width: 52px;
+      height: 52px;
+      border-radius: 5px;
+      border: 1.5px solid #e6e4de;
+      cursor: pointer;
+    }
+    .gallery-thumbs canvas.is-active {
+      border-color: #18181b;
+    }
+    .item-shop {
+      font-size: 12px;
+      color: #8c8a84;
+      margin-bottom: 6px;
+    }
+    .item-title {
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 1.45;
+      color: #18181b;
+      margin-bottom: 16px;
+    }
+    .item-price-box {
+      background: #f7f6f3;
+      border-radius: 6px;
+      padding: 12px 16px;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+    .item-price-label {
+      font-size: 12px;
+      color: #8c8a84;
+    }
+    .item-price-val {
+      font-size: 24px;
+      font-weight: 700;
+      color: #b85d3b;
+      font-variant-numeric: tabular-nums;
+    }
+    .item-sku-row { margin-bottom: 18px; }
+    .item-sku-label { font-size: 12px; color: #8c8a84; margin-bottom: 6px; }
+    .item-sku-opts { display: flex; gap: 8px; flex-wrap: wrap; }
+    .item-sku-opt {
+      padding: 5px 12px;
+      border-radius: 5px;
+      border: 1px solid #d4d1c8;
+      font-size: 12.5px;
+      color: #18181b;
+    }
+    .item-attrs {
+      border-top: 1px solid #eceae4;
+      padding-top: 14px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 16px;
+      font-size: 12.5px;
+      color: #575653;
+    }
+    .item-attrs span { color: #8c8a84; }
+
+    /* =====================================================================
+       擬真蝦皮賣家中心（seller.shopee.tw/portal/product/new）表單樣式
+       ===================================================================== */
+    .sp-seller-wrap {
+      max-width: 880px;
+      margin: 16px auto 60px;
+      padding: 0 28px;
+    }
+    .sp-seller-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 11px 16px;
+      border-radius: 8px;
+      background: #18181b;
+      color: #ffffff;
+      font-size: 12.5px;
+      margin-bottom: 14px;
+    }
+    .sp-seller-banner span {
+      color: #d4d4d8;
+    }
+    .sp-seller-box {
+      background: #ffffff;
+      border: 1px solid #e5e5e5;
+      border-radius: 8px;
+      padding: 22px 24px;
+      margin-bottom: 14px;
+    }
+    .sp-seller-box h2 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 18px;
+      color: #222;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .sp-form-row {
+      display: grid;
+      grid-template-columns: 116px minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+      margin-bottom: 16px;
+    }
+    .sp-form-row:last-child {
+      margin-bottom: 0;
+    }
+    .sp-form-label {
+      font-size: 13px;
+      color: #333;
+      padding-top: 7px;
+      text-align: right;
+    }
+    .sp-form-label .req {
+      color: #ee4d2d;
+      margin-right: 3px;
+    }
+    .sp-upload-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .sp-img-slot {
+      position: relative;
+      width: 88px;
+      height: 88px;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid #e0e0e0;
+      background: #fafafa;
+    }
+    .sp-img-slot img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .sp-img-badge {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(238, 77, 45, 0.9);
+      color: #fff;
+      font-size: 10.5px;
+      text-align: center;
+      padding: 2px 0;
+      font-weight: 600;
+    }
+    .sp-img-add {
+      width: 88px;
+      height: 88px;
+      border-radius: 6px;
+      border: 1px dashed #cfcfcf;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #888;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .sp-cat-box {
+      padding: 10px 12px;
+      border-radius: 6px;
+      border: 1.5px solid #ee4d2d;
+      background: #fff8f6;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .sp-cat-box.is-filled {
+      border-color: #d9d9d9;
+      background: #ffffff;
+    }
+    .sp-cat-picks {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .sp-cat-btn {
+      padding: 4px 10px;
+      border-radius: 4px;
+      border: 1px solid #e0cbc5;
+      background: #fff;
+      font-size: 12px;
+      color: #333;
+    }
+    .sp-cat-btn:hover {
+      border-color: #ee4d2d;
+      color: #ee4d2d;
+    }
+    .sp-cat-btn.is-selected {
+      background: #ee4d2d;
+      border-color: #ee4d2d;
+      color: #fff;
+    }
+    .sp-footer-bar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 14px 20px;
+      background: #ffffff;
+      border: 1px solid #e5e5e5;
+      border-radius: 8px;
+    }
+    .btn-shopee {
+      height: 38px;
+      padding: 0 22px;
+      border-radius: 5px;
+      background: #ee4d2d;
+      color: #ffffff;
+      font-size: 13.5px;
+      font-weight: 600;
+    }
+    .btn-shopee:hover {
+      background: #d73f20;
+    }
+  </style>
+</head>
+<body>
+  <div class="browser-shell">
+    <header class="chrome-bar">
+      <div class="sim-tabs" id="productTabs">
+        <button class="sim-tab is-active" data-product="earring">
+          <span class="sim-site-dot"></span>
+          <span>淘寶 · 極簡拉絲幾何耳釘 ¥58</span>
+        </button>
+        <button class="sim-tab" data-product="pearl">
+          <span class="sim-site-dot"></span>
+          <span>天貓 · 巴洛克淡水珍珠項鍊 ¥89</span>
+        </button>
+        <button class="sim-tab" data-product="clip">
+          <span class="sim-site-dot"></span>
+          <span>1688 · 法式醋酸玳瑁抓夾 ¥12.5</span>
+        </button>
+        <button class="sim-tab hidden" id="shopeeSimTab" data-shopee-tab="1">
+          <span class="sim-site-dot is-shopee"></span>
+          <span>蝦皮賣家中心 · 新增商品</span>
+        </button>
+      </div>
+
+      <div class="chrome-actions">
+        <button id="toggleOnboardingBtn" title="預覽第一次安裝時的 30 秒引導">初次引導</button>
+        <button id="toggleQuotaBtn" title="預覽免費 10 件用完後的畫面">額度用完</button>
+        <button id="toggleOptionsBtn">品牌與定價設定</button>
+        <a href="listio.zip" download="listio.zip">下載專案 (.zip)</a>
+      </div>
+    </header>
+
+    <div class="workspace">
+      <div class="webpage-pane" id="leftPane"></div>
+      <aside class="sidepanel-dock">
+        <iframe id="spFrame" src="extension/src/sidepanel/index.html?mock=1&view=job&v=13" title="Listio 側邊欄"></iframe>
+      </aside>
+    </div>
+  </div>
+
+  <script type="module">
+    import { fillShopeeProductForm } from './extension/src/content/shopee-autofill.js?v=13';
+
+    const ITEMS = {
+      earring: {
+        siteName: '淘寶網 Taobao',
+        url: 'https://item.taobao.com/item.htm?id=7312345678',
+        shop: '白昼金属实验所 · 极有家认证店铺',
+        title: 's925纯银流动几何极简拉丝耳钉女新款冷淡风小众设计高级感气质耳环',
+        price: '58.00',
+        skuLabel: '颜色分类',
+        skus: ['雾面拉丝金', '质感亮银'],
+        attrs: [
+          ['材质', '925银'],
+          ['风格', '极简冷淡'],
+          ['款式', '耳钉'],
+          ['发货地', '浙江杭州'],
+        ],
+      },
+      pearl: {
+        siteName: '天貓 Tmall',
+        url: 'https://detail.tmall.com/item.htm?id=8091122334',
+        shop: '南风珍珠旗舰店 · 品牌直销',
+        title: '巴洛克异形淡水珍珠项链女夏轻奢小众锁骨链复古高级感颈链配饰',
+        price: '89.00',
+        skuLabel: '规格款式',
+        skus: ['单颗巴洛克吊坠 (38+5cm)', '双层叠戴组'],
+        attrs: [
+          ['材质', '淡水珍珠 / 镀金链'],
+          ['链长', '38cm + 5cm延长链'],
+          ['风格', '法式复古'],
+          ['发货地', '江苏苏州'],
+        ],
+      },
+      clip: {
+        siteName: '1688 批發網',
+        url: 'https://detail.1688.com/offer/6889900112.html',
+        shop: '义乌市星辰发饰厂 · 源头工厂 (2件起批)',
+        title: '法式复古醋酸玳瑁抓夹大号后脑勺盘发鲨鱼夹义乌源头工厂批发',
+        price: '12.50',
+        skuLabel: '颜色规格',
+        skus: ['经典琥珀玳瑁 11.5cm', '奶油燕麦白 11.5cm'],
+        attrs: [
+          ['材质', '进口醋酸板材'],
+          ['尺寸', '11.5cm 大号加厚'],
+          ['起批量', '≥ 2 件'],
+          ['发货地', '浙江金华义乌'],
+        ],
+      },
+    };
+
+    let currentMode = 'item'; // 'item' | 'options' | 'shopee'
+    let currentKey = 'earring';
+    let lastShopeePayload = null;
+
+    function drawArt(canvas, kind, variant) {
+      const w = canvas.width;
+      const h = canvas.height;
+      const ctx = canvas.getContext('2d');
+      const bgs = [
+        ['#F6F2EB', '#E7DFD2'],
+        ['#EFECE6', '#DDD6C9'],
+        ['#F8F6F2', '#EAE4DA'],
+        ['#ECE8E1', '#D6CEC0'],
+      ];
+      const [c1, c2] = bgs[variant % bgs.length];
+      const g = ctx.createLinearGradient(0, 0, w, h);
+      g.addColorStop(0, c1);
+      g.addColorStop(1, c2);
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.save();
+      ctx.translate(w / 2, h / 2);
+      const scale = w / 520;
+      ctx.scale(scale, scale);
+
+      if (kind === 'earring') {
+        ctx.strokeStyle = variant % 2 === 1 ? '#A8A9AD' : '#B99256';
+        ctx.lineWidth = 26;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.arc(-34, 8, 72, Math.PI * 0.2, Math.PI * 1.75);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(42, 22, 66, Math.PI * 0.25, Math.PI * 1.8);
+        ctx.stroke();
+      } else if (kind === 'pearl') {
+        ctx.strokeStyle = '#C7A46C';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(0, -20, 130, Math.PI * 0.12, Math.PI * 0.88);
+        ctx.stroke();
+        [-95, -58, -22, 16, 54, 90].forEach((x, idx) => {
+          const y = -20 + Math.sqrt(Math.max(0, 130 * 130 - x * x));
+          ctx.fillStyle = idx === 2 ? '#FDFBF7' : '#F5EFE4';
+          ctx.beginPath();
+          ctx.ellipse(x, y, idx === 2 ? 22 : 14, idx === 2 ? 27 : 15, 0.2 * idx, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      } else {
+        ctx.rotate(-0.22 + variant * 0.08);
+        ctx.fillStyle = variant % 2 === 0 ? '#6E472B' : '#C8B69E';
+        ctx.beginPath();
+        ctx.roundRect(-125, -36, 250, 72, 34);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(246,242,235,0.85)';
+        ctx.beginPath();
+        ctx.roundRect(-85, -12, 170, 24, 12);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function syncTabBar() {
+      const optBtn = document.getElementById('toggleOptionsBtn');
+      optBtn.classList.toggle('is-active', currentMode === 'options');
+      document.querySelectorAll('#productTabs .sim-tab').forEach((b) => {
+        if (b.dataset.shopeeTab) {
+          b.classList.toggle('is-active', currentMode === 'shopee');
+        } else {
+          b.classList.toggle('is-active', currentMode === 'item' && b.dataset.product === currentKey);
+        }
+      });
+    }
+
+    function renderShopeeSellerPage(payload) {
+      const pane = document.getElementById('leftPane');
+      pane.scrollTop = 0;
+      pane.innerHTML = `
+        <div class="mock-urlbar">
+          <div class="url-pill">
+            <span>https://seller.shopee.tw/portal/product/new</span>
+            <span>模擬蝦皮賣家中心「新增商品」頁面（已由擴充功能自動填表＋上傳圖片）</span>
+          </div>
+        </div>
+
+        <div class="sp-seller-wrap" id="mockShopeeRoot">
+          <div class="sp-seller-banner">
+            <div>
+              <strong>已自動帶入圖片、標題、內文與台幣售價</strong>
+              <span>— 賣家只需點選下方「商品分類」，即可直接按右下角儲存並上架！</span>
+            </div>
+          </div>
+
+          <section class="sp-seller-box">
+            <h2>
+              <span>基本資訊</span>
+              <span class="xs muted" id="spImgCountLabel">0 / 9 張圖片</span>
+            </h2>
+
+            <div class="sp-form-row">
+              <div class="sp-form-label"><span class="req">*</span>商品圖片</div>
+              <div>
+                <input type="file" multiple accept="image/*" data-shopee-field="images" class="hidden" id="spFileInput" />
+                <div class="sp-upload-grid" id="spImageGallery"></div>
+                <div class="xs muted" style="margin-top:6px;">
+                  第 1 張已自動放入剛才合成的 <strong>800×800 品牌首圖</strong>，第 2 張起為已勾選的高清商品原圖。
+                </div>
+              </div>
+            </div>
+
+            <div class="sp-form-row">
+              <div class="sp-form-label"><span class="req">*</span>商品名稱</div>
+              <div class="row" style="gap:8px;">
+                <input type="text" class="input" data-shopee-field="title" placeholder="請輸入商品名稱" id="spTitleInput" />
+                <span class="xs muted mono" id="spTitleLen" style="white-space:nowrap;">0/60</span>
+              </div>
+            </div>
+
+            <div class="sp-form-row">
+              <div class="sp-form-label"><span class="req">*</span>商品分類</div>
+              <div class="sp-cat-box" id="spCatBox">
+                <div class="row-between">
+                  <span class="small" id="spCatStatus" style="color:#ee4d2d;font-weight:600;">
+                    請點選商品分類（唯一需人工確認的欄位）：
+                  </span>
+                </div>
+                <div class="sp-cat-picks" id="spCatPicks">
+                  <button type="button" class="sp-cat-btn" data-cat="女生配件/黃金 > 耳環">女生配件/黃金 &gt; 耳環</button>
+                  <button type="button" class="sp-cat-btn" data-cat="女生配件/黃金 > 項鍊">女生配件/黃金 &gt; 項鍊</button>
+                  <button type="button" class="sp-cat-btn" data-cat="女生配件/黃金 > 髮飾">女生配件/黃金 &gt; 髮飾</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="sp-form-row">
+              <div class="sp-form-label"><span class="req">*</span>商品描述</div>
+              <textarea class="textarea" style="min-height:210px;" data-shopee-field="description" placeholder="請輸入商品描述"></textarea>
+            </div>
+          </section>
+
+          <section class="sp-seller-box">
+            <h2>銷售與出貨資訊</h2>
+
+            <div class="sp-form-row">
+              <div class="sp-form-label"><span class="req">*</span>價格 (NT$)</div>
+              <input type="number" class="input" style="max-width:200px;" data-shopee-field="price" placeholder="請輸入價格" />
+            </div>
+
+            <div class="sp-form-row">
+              <div class="sp-form-label"><span class="req">*</span>商品數量</div>
+              <input type="number" class="input" style="max-width:200px;" data-shopee-field="stock" placeholder="請輸入數量" />
+            </div>
+
+            <div class="sp-form-row">
+              <div class="sp-form-label">主商品貨號</div>
+              <input type="text" class="input mono" style="max-width:240px;" data-shopee-field="parentSku" placeholder="主商品貨號" />
+            </div>
+
+            <div class="sp-form-row">
+              <div class="sp-form-label">較長備貨</div>
+              <div class="col" style="gap:8px;padding-top:6px;">
+                <div class="row" style="gap:16px;font-size:13px;">
+                  <label class="row" style="gap:5px;cursor:pointer;">
+                    <input type="radio" name="spPreorder" data-shopee-preorder="no" /> 否（2 個工作天內出貨）
+                  </label>
+                  <label class="row" style="gap:5px;cursor:pointer;">
+                    <input type="radio" name="spPreorder" data-shopee-preorder="yes" /> 是，較長備貨
+                  </label>
+                </div>
+                <div class="row small muted" id="spPreorderDaysRow">
+                  <span>我需要</span>
+                  <input type="number" class="input" style="width:76px;padding:4px 8px;" data-shopee-field="daysToShip" placeholder="7~20" />
+                  <span>個工作天出貨</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <div class="sp-footer-bar" id="spFooterBar">
+            <button type="button" class="btn btn-secondary" id="spSaveDraftBtn">儲存並下架（草稿）</button>
+            <button type="button" class="btn-shopee" id="spPublishBtn">儲存並上架</button>
+          </div>
+        </div>
+      `;
+
+      // 綁定圖片上傳預覽（實際接收 fillShopeeProductForm 注入的 DataTransfer File 物件！）
+      const fileInput = document.getElementById('spFileInput');
+      const gallery = document.getElementById('spImageGallery');
+      const countLbl = document.getElementById('spImgCountLabel');
+      fileInput.addEventListener('change', () => {
+        const files = Array.from(fileInput.files || []);
+        countLbl.textContent = `${files.length} / 9 張圖片`;
+        gallery.innerHTML = '';
+        files.forEach((file, idx) => {
+          const url = URL.createObjectURL(file);
+          const slot = document.createElement('div');
+          slot.className = 'sp-img-slot';
+          slot.innerHTML = `
+            <img src="${url}" alt="${file.name}" />
+            ${idx === 0 ? '<div class="sp-img-badge">封面首圖</div>' : ''}
+          `;
+          gallery.appendChild(slot);
+        });
+        if (files.length < 9) {
+          const addBtn = document.createElement('label');
+          addBtn.className = 'sp-img-add';
+          addBtn.htmlFor = 'spFileInput';
+          addBtn.innerHTML = `<span style="font-size:18px;">+</span><span>新增 (${files.length}/9)</span>`;
+          gallery.appendChild(addBtn);
+        }
+      });
+
+      const titleInput = document.getElementById('spTitleInput');
+      const titleLen = document.getElementById('spTitleLen');
+      titleInput.addEventListener('input', () => {
+        titleLen.textContent = `${Array.from(titleInput.value).length}/60`;
+      });
+
+      // 分類快捷點選
+      let selectedCat = '';
+      document.getElementById('spCatPicks').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-cat]');
+        if (!btn) return;
+        selectedCat = btn.dataset.cat;
+        document.querySelectorAll('.sp-cat-btn').forEach((b) => b.classList.toggle('is-selected', b === btn));
+        document.getElementById('spCatBox').classList.add('is-filled');
+        const st = document.getElementById('spCatStatus');
+        st.style.color = '#2a6f4e';
+        st.textContent = `已選擇分類：${selectedCat}`;
+      });
+
+      document.getElementById('spPublishBtn').addEventListener('click', () => {
+        const footer = document.getElementById('spFooterBar');
+        footer.innerHTML = `
+          <span style="color:#2a6f4e;font-weight:600;font-size:13.5px;">
+            ✓ 商品已成功刊登至蝦皮賣場！（${selectedCat || '預設分類'} · NT$${titleInput ? document.querySelector('[data-shopee-field="price"]').value : ''}）
+          </span>
+        `;
+      });
+
+      document.getElementById('spSaveDraftBtn').addEventListener('click', () => {
+        const footer = document.getElementById('spFooterBar');
+        footer.innerHTML = `<span style="color:#575653;font-weight:600;font-size:13.5px;">✓ 已儲存至蝦皮「尚未刊登」草稿區</span>`;
+      });
+
+      // 呼叫真實的擴充功能自動填表模組，並把填表結果回報給側邊欄（側邊欄據此決定成功／備援提示）
+      const scopeDoc = document.getElementById('mockShopeeRoot');
+      const filled = fillShopeeProductForm(scopeDoc, window, { ...payload, silentBanner: true });
+      document.getElementById('spFrame')?.contentWindow?.postMessage(
+        { type: 'LISTIO_MOCK_SHOPEE_RESULT', requestId: payload.requestId, filled },
+        '*',
+      );
+    }
+
+    function renderLeftWebpage(activeVariant = 0) {
+      syncTabBar();
+      const pane = document.getElementById('leftPane');
+
+      if (currentMode === 'options') {
+        pane.innerHTML = '<iframe src="extension/src/options/index.html?mock=1&tab=copy&v=13" title="品牌設定"></iframe>';
+        return;
+      }
+
+      if (currentMode === 'shopee' && lastShopeePayload) {
+        renderShopeeSellerPage(lastShopeePayload);
+        return;
+      }
+
+      const it = ITEMS[currentKey];
+      pane.innerHTML = `
+        <div class="mock-urlbar">
+          <div class="url-pill">
+            <span>${it.url}</span>
+            <span>點右側底部「一鍵帶入蝦皮後台」，可直接看自動開蝦皮分頁＋填表塞圖的完整流程</span>
+          </div>
+        </div>
+        <div class="mock-item">
+          <div class="mock-card">
+            <div>
+              <div class="gallery-main"><canvas id="mainArt" width="520" height="520"></canvas></div>
+              <div class="gallery-thumbs" id="thumbRow">
+                ${[0, 1, 2, 3].map((v) => `<canvas width="104" height="104" data-v="${v}" class="${v === activeVariant ? 'is-active' : ''}"></canvas>`).join('')}
+              </div>
+            </div>
+            <div>
+              <div class="item-shop">${it.shop}</div>
+              <h1 class="item-title">${it.title}</h1>
+              <div class="item-price-box">
+                <span class="item-price-label">價格</span>
+                <span class="item-price-val">¥ ${it.price}</span>
+              </div>
+              <div class="item-sku-row">
+                <div class="item-sku-label">${it.skuLabel}</div>
+                <div class="item-sku-opts">
+                  ${it.skus.map((s) => `<span class="item-sku-opt">${s}</span>`).join('')}
+                </div>
+              </div>
+              <div class="item-attrs">
+                ${it.attrs.map(([k, v]) => `<div><span>${k}：</span>${v}</div>`).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      drawArt(document.getElementById('mainArt'), currentKey, activeVariant);
+      document.querySelectorAll('#thumbRow canvas').forEach((c) => {
+        const v = Number(c.dataset.v);
+        drawArt(c, currentKey, v);
+        c.addEventListener('click', () => renderLeftWebpage(v));
+      });
+    }
+
+    document.getElementById('productTabs').addEventListener('click', (e) => {
+      const shopeeTab = e.target.closest('[data-shopee-tab]');
+      if (shopeeTab && lastShopeePayload) {
+        currentMode = 'shopee';
+        renderLeftWebpage();
+        return;
+      }
+      const tab = e.target.closest('[data-product]');
+      if (!tab) return;
+      currentKey = tab.dataset.product;
+      currentMode = 'item';
+      renderLeftWebpage(0);
+
+      const frame = document.getElementById('spFrame');
+      frame.contentWindow?.postMessage({ type: 'LISTIO_SELECT_PRODUCT', key: currentKey }, '*');
+    });
+
+    document.getElementById('toggleOptionsBtn').addEventListener('click', () => {
+      currentMode = currentMode === 'options' ? 'item' : 'options';
+      renderLeftWebpage(0);
+    });
+
+    // 右側側邊欄的情境切換：初次引導 / 免費額度用完 / 一般工作台
+    const SP_BASE = 'extension/src/sidepanel/index.html?mock=1&v=13';
+    let spScenario = 'job';
+    function setSidePanelScenario(next) {
+      spScenario = spScenario === next ? 'job' : next;
+      const frame = document.getElementById('spFrame');
+      frame.src =
+        spScenario === 'onboarding'
+          ? `${SP_BASE}&view=onboarding&item=${currentKey}`
+          : spScenario === 'quota'
+            ? `${SP_BASE}&view=home&used=10&item=${currentKey}`
+            : `${SP_BASE}&view=job&item=${currentKey}`;
+      document.getElementById('toggleOnboardingBtn').classList.toggle('is-active', spScenario === 'onboarding');
+      document.getElementById('toggleQuotaBtn').classList.toggle('is-active', spScenario === 'quota');
+    }
+    document.getElementById('toggleOnboardingBtn').addEventListener('click', () => setSidePanelScenario('onboarding'));
+    document.getElementById('toggleQuotaBtn').addEventListener('click', () => setSidePanelScenario('quota'));
+
+    window.addEventListener('message', (ev) => {
+      if (ev.data?.type === 'LISTIO_OPEN_MOCK_SHOPEE' && ev.data.payload) {
+        lastShopeePayload = ev.data.payload;
+        document.getElementById('shopeeSimTab').classList.remove('hidden');
+        currentMode = 'shopee';
+        renderLeftWebpage();
+      }
+    });
+
+    renderLeftWebpage(0);
+  </script>
+</body>
+</html>

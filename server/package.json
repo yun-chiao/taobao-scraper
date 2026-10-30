@@ -1,0 +1,27 @@
+{
+  "name": "listio-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Listio（上架所）Cloud 模式後端：Hono + Postgres + Stripe + Gemini",
+  "type": "module",
+  "main": "src/index.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "sync-contract": "node scripts/sync-contract.mjs",
+    "predev": "npm run sync-contract",
+    "dev": "node --watch --env-file=.env src/index.js",
+    "start": "node src/index.js",
+    "pretest": "npm run sync-contract -- --check",
+    "test": "node --test ../tests/server-*.test.mjs",
+    "docker:build": "npm run sync-contract && docker build -t listio-server ."
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.7",
+    "hono": "^4.6.14",
+    "jose": "^5.9.6",
+    "pg": "^8.13.1",
+    "stripe": "^17.5.0"
+  }
+}

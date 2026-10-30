@@ -1,5 +1,10 @@
-# 個人金鑰與網址
-config.js
-# 匯出的資料
-*.xlsx
+# 依賴與建置產物
+node_modules/
+server/node_modules/
+listio.zip
+*.log
+
+# 本機環境
+server/.env
 .DS_Store
+Thumbs.db

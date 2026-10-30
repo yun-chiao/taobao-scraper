@@ -1,0 +1,56 @@
+/* Editorial / Craft Studio Design Tokens — 克制、紙感、無漸層、無 AI 模板感 */
+:root {
+  color-scheme: light;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  --font-serif: "Noto Serif TC", "Songti TC", Georgia, serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --fs-xs: 11.5px;
+  --fs-sm: 12.5px;
+  --fs-md: 13.5px;
+  --fs-lg: 15px;
+  --fs-xl: 18px;
+  --fs-2xl: 20px;
+  --lh: 1.55;
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 10px;
+  --r-pill: 999px;
+
+  /* 暖白紙張 + 純黑墨水 */
+  --c-bg: #f7f6f3;
+  --c-surface: #ffffff;
+  --c-surface-2: #f1f0ec;
+  --c-surface-3: #e7e5df;
+  --c-border: #e6e4de;
+  --c-border-strong: #d1cec5;
+  --c-text: #18181b;
+  --c-text-2: #575653;
+  --c-text-3: #8c8a84;
+
+  --c-primary: #18181b;
+  --c-primary-hover: #2f2f35;
+  --c-primary-soft: rgba(24, 24, 27, 0.08);
+  --c-on-primary: #ffffff;
+
+  --c-accent: #b85d3b;
+  --c-danger: #b9382c;
+  --c-success: #2a6f4e;
+  --c-focus: rgba(24, 24, 27, 0.14);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
+
+  --dur: 120ms;
+  --ease: ease-out;
+}
